@@ -2241,3 +2241,444 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('appScreen').style.display   = 'none';
 });
+/* ================================================================
+   AJUSTES FINAIS SOLICITADOS — PRESERVA E MELHORA O CÓDIGO EXISTENTE
+   ================================================================ */
+
+/* Banco remoto opcional Supabase
+   Preencha estes dados quando publicar no Vercel/GitHub.
+   O sistema continua funcionando localmente com localStorage se os campos ficarem vazios. */
+const SUPABASE_URL = '';
+const SUPABASE_ANON_KEY = '';
+const SUPABASE_ROW_ID = 'finansys_producao';
+let supabaseClient = null;
+
+function iniciarSupabase() {
+  try {
+    if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch (e) {
+    console.warn('Supabase não iniciado:', e.message);
+  }
+}
+
+const salvarStateOriginalLocal = salvarState;
+salvarState = function salvarStateMelhorado() {
+  localStorage.setItem('finansys_v3', JSON.stringify(state));
+  if (supabaseClient) {
+    supabaseClient
+      .from('finansys_state')
+      .upsert({ id: SUPABASE_ROW_ID, data: state, updated_at: new Date().toISOString() })
+      .then(({ error }) => { if (error) console.warn('Erro ao salvar no Supabase:', error.message); });
+  }
+};
+
+async function carregarStateRemoto() {
+  iniciarSupabase();
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient.from('finansys_state').select('data').eq('id', SUPABASE_ROW_ID).maybeSingle();
+  if (!error && data && data.data) {
+    state = Object.assign({}, state, data.data);
+    normalizarStateFinanceiro();
+    localStorage.setItem('finansys_v3', JSON.stringify(state));
+    aplicarNomeSistema();
+  }
+}
+
+function normalizarStateFinanceiro() {
+  if (!state.contas || !state.contas.length) {
+    state.contas = [{ id: uid(), nome:'Banco Noh', tipo:'corrente', saldo:0, cor:'#4361ee', principal:true }];
+  }
+  if (!state.contas.some(c => c.principal)) state.contas[0].principal = true;
+  if (!state.saldosMes) state.saldosMes = {};
+  state.movimentacoes = (state.movimentacoes || []).map(m => ({ ...m, serieId: m.serieId || m.id }));
+  state.provisoes = (state.provisoes || []).map(p => ({ ...p, datasAnuais: p.datasAnuais || '' }));
+}
+
+const carregarStateOriginal = carregarState;
+carregarState = function carregarStateComNormalizacao() {
+  carregarStateOriginal();
+  normalizarStateFinanceiro();
+};
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await carregarStateRemoto();
+});
+
+function mesAnterior(ym) { return addMeses(ym, -1); }
+
+function saldoInicialDoMes(ym, visitados = new Set()) {
+  if (!state.saldosMes) state.saldosMes = {};
+  if (state.saldosMes[ym] !== undefined) return +state.saldosMes[ym] || 0;
+  const mesBase = state.dashboardMes || mesAtualISO();
+  if (ym === mesBase) return +state.saldoInicial || 0;
+  if (visitados.has(ym)) return +state.saldoInicial || 0;
+  visitados.add(ym);
+  const ant = mesAnterior(ym);
+  const rAnt = calcularResumoMes(ant, visitados);
+  const pendentes = movsDoMes(ant).filter(m => m.tipo === 'despesa' && !despesaComputavel(m)).length;
+  return pendentes === 0 && rAnt.saldoLivre > 0 ? rAnt.saldoLivre : 0;
+}
+
+calcularResumoMes = function calcularResumoMesMelhorado(ym, visitados = new Set()) {
+  normalizarStateFinanceiro();
+  const movs = movsDoMes(ym);
+  const provMes = provisoesDoMes(ym);
+  const entradasLancadasMov = movs.filter(m => m.tipo === 'entrada').reduce((s,m)=>s+(+m.valor||0),0);
+  const entradasLancadasProv = provMes.filter(p => p.tipo === 'entrada').reduce((s,p)=>s+(+p.valor||0),0);
+  const entradasRecebidasMov = movs.filter(m => m.tipo === 'entrada' && m.recebido === true).reduce((s,m)=>s+(+m.valor||0),0);
+  const entradasRecebidasProv = provMes.filter(p => p.tipo === 'entrada' && provisaoRecebidaNoMes(p, ym)).reduce((s,p)=>s+(+p.valor||0),0);
+  const receberMov = movs.filter(m => m.tipo === 'entrada' && m.recebido !== true).reduce((s,m)=>s+(+m.valor||0),0);
+  const receberProv = provMes.filter(p => p.tipo === 'entrada' && !provisaoRecebidaNoMes(p, ym)).reduce((s,p)=>s+(+p.valor||0),0);
+  const despesasLancadasMov = movs.filter(m => m.tipo === 'despesa').reduce((s,m)=>s+(+m.valor||0),0);
+  const despesasLancadasProv = provMes.filter(p => p.tipo === 'despesa').reduce((s,p)=>s+(+p.valor||0),0);
+  const despesasComputadasMov = movs.filter(despesaComputavel).reduce((s,m)=>s+(+m.valor||0),0);
+  const despesasComputadasProv = provMes.filter(p => p.tipo === 'despesa' && provisaoRecebidaNoMes(p, ym)).reduce((s,p)=>s+(+p.valor||0),0);
+  const saldoInicialMes = saldoInicialDoMes(ym, visitados);
+  const saldoLivre = saldoInicialMes + entradasRecebidasMov + entradasRecebidasProv - despesasComputadasMov - despesasComputadasProv;
+  return {
+    saldoInicialMes,
+    entradasLancadas: entradasLancadasMov + entradasLancadasProv,
+    entradasRecebidas: entradasRecebidasMov + entradasRecebidasProv,
+    valoresAReceber: receberMov + receberProv,
+    despesasLancadas: despesasLancadasMov + despesasLancadasProv,
+    despesas: despesasComputadasMov + despesasComputadasProv,
+    saldoLivre
+  };
+};
+
+function atualizarCamposAnuais() {
+  const movWrap = document.getElementById('movDatasAnuaisWrap');
+  const movRec = document.getElementById('movRecorrencia')?.value;
+  if (movWrap) movWrap.style.display = movRec === 'anual' ? 'block' : 'none';
+  const provWrap = document.getElementById('provDatasAnuaisWrap');
+  const provRec = document.getElementById('provRecorrencia')?.value;
+  if (provWrap) provWrap.style.display = provRec === 'anual' ? 'block' : 'none';
+}
+
+function datasAnuaisDigitadas(txt, dataBase, repeticoes) {
+  const partes = String(txt || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (!partes.length) return [];
+  const anoBase = Number(dataBase.slice(0,4));
+  const maxAnos = Math.max(1, parseInt(repeticoes || '1') || 1);
+  const datas = [];
+  for (let ano = 0; ano < maxAnos; ano++) {
+    partes.forEach(p => {
+      const m = p.match(/^(\d{1,2})\/(\d{1,2})$/);
+      if (m) datas.push(`${anoBase + ano}-${String(+m[2]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}`);
+    });
+  }
+  return datas;
+}
+
+atualizarCampoRecebidoMov = function atualizarCampoRecebidoMovMelhorado() {
+  const tipo = document.getElementById('movTipo')?.value;
+  const wrap = document.getElementById('movRecebidoWrap');
+  if (wrap) {
+    wrap.style.display = 'flex';
+    wrap.childNodes[1].nodeValue = tipo === 'despesa' ? ' Marcar despesa como paga' : ' Marcar entrada como recebida';
+  }
+};
+
+const abrirModalMovimentacaoOriginal = abrirModalMovimentacao;
+abrirModalMovimentacao = function abrirModalMovimentacaoMelhorada(tipo, id) {
+  abrirModalMovimentacaoOriginal(tipo, id);
+  const m = id ? state.movimentacoes.find(x => x.id === id) : null;
+  if (document.getElementById('movDatasAnuais')) document.getElementById('movDatasAnuais').value = m?.datasAnuais || '';
+  atualizarCamposAnuais();
+};
+
+salvarMovimentacao = function salvarMovimentacaoMelhorada() {
+  const id        = document.getElementById('movId').value;
+  const tipo      = document.getElementById('movTipo').value;
+  const data      = document.getElementById('movData').value;
+  const descricao = document.getElementById('movDescricao').value.trim();
+  const categoria = document.getElementById('movCategoria').value;
+  const conta     = document.getElementById('movConta').value;
+  const valor     = parseMoeda(document.getElementById('movValor').value);
+  const obs       = document.getElementById('movObs').value.trim();
+  const recorrencia = document.getElementById('movRecorrencia')?.value || '';
+  const repeticoes  = document.getElementById('movRepeticoes')?.value || '';
+  const datasAnuais = document.getElementById('movDatasAnuais')?.value || '';
+  const marcado = document.getElementById('movRecebido')?.checked === true;
+  const recebido = tipo === 'entrada' ? marcado : false;
+  const pago = tipo === 'despesa' ? marcado : false;
+
+  if (!data || !descricao || !categoria || valor <= 0) { toast('Preencha todos os campos obrigatórios!', 'error'); return; }
+  if (recorrencia && (!parseInt(repeticoes || '0') || parseInt(repeticoes || '0') <= 0)) { toast('Informe a quantidade de repetições.', 'error'); return; }
+
+  if (tipo === 'despesa') {
+    const r = calcularResumoMes(data.slice(0,7));
+    const saldoAntes = r.saldoLivre;
+    const diferenca = saldoAntes - valor;
+    toast(diferenca < 0 ? `A despesa ultrapassa o saldo em ${fmt(Math.abs(diferenca))}` : `Após esta despesa ainda restará ${fmt(diferenca)}`, diferenca < 0 ? 'error' : 'info');
+  }
+
+  const snap = snapState();
+  if (id) {
+    const idx = state.movimentacoes.findIndex(x => x.id === id);
+    if (idx > -1) {
+      pushUndo(`Editar ${tipo}`, snap);
+      state.movimentacoes[idx] = { ...state.movimentacoes[idx], tipo, data, descricao, categoria, conta, valor, obs, recebido, pago, recorrencia, repeticoes, datasAnuais };
+      registrarAuditoria('Editar Movimentação', `${tipo} "${descricao}" ${fmt(valor)}`);
+    }
+  } else {
+    pushUndo(`Adicionar ${tipo}`, snap);
+    const serieId = uid();
+    let datas = [];
+    if (recorrencia === 'anual' && datasAnuais.trim()) datas = datasAnuaisDigitadas(datasAnuais, data, repeticoes);
+    if (!datas.length) {
+      const total = recorrencia ? Math.max(1, parseInt(repeticoes || '1') || 1) : 1;
+      datas = Array.from({ length: total }, (_, i) => dataComIncremento(data, recorrencia, i));
+    }
+    datas.sort((a,b)=>a.localeCompare(b)).forEach((dt, i) => {
+      state.movimentacoes.push({ id: uid(), serieId, tipo, data: dt, descricao, categoria, conta, valor, obs, recebido, pago, conciliado:false, usuario: currentUser?.nome || 'Sistema', _destaque:null, recorrencia, repeticoes, datasAnuais, parcela: datas.length > 1 ? `${i+1}/${datas.length}` : '' });
+    });
+    registrarAuditoria('Nova Movimentação', `${tipo} "${descricao}" ${fmt(valor)}`);
+  }
+  salvarState(); fecharModais(); renderDashboard(); reRenderAtivo(); toast(`${tipo === 'entrada' ? 'Entrada' : 'Despesa'} salva ✓`);
+};
+
+renderEntradas = function renderEntradasMelhorado() {
+  const search = (document.getElementById('searchEntradas')?.value || '').toLowerCase();
+  const categ  = document.getElementById('filtroCategEntradas')?.value || '';
+  preencherSelectCategorias('filtroCategEntradas', 'entrada', true, categ);
+  let movs = state.movimentacoes.filter(m => m.tipo === 'entrada');
+  if (state.filtro.inicio) movs = movs.filter(m => m.data >= state.filtro.inicio);
+  if (state.filtro.fim) movs = movs.filter(m => m.data <= state.filtro.fim);
+  if (search) movs = movs.filter(m => m.descricao.toLowerCase().includes(search) || m.categoria.toLowerCase().includes(search));
+  if (categ) movs = movs.filter(m => m.categoria === categ);
+  movs.sort((a,b) => a.data.localeCompare(b.data));
+  const tbody = document.getElementById('tbodyEntradas');
+  const empty = document.getElementById('emptyEntradas');
+  if (!movs.length) { tbody.innerHTML = ''; empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = movs.map(m => `<tr><td>${fmtData(m.data)}</td><td><strong>${m.descricao}</strong>${m.parcela ? `<br><small style="color:var(--text-3)">Parcela ${m.parcela}</small>` : ''}${m.recebido ? '<br><small class="green">✓ Recebido</small>' : '<br><small style="color:var(--orange)">A receber</small>'}</td><td><span class="tag-categ" style="background:var(--green-bg);color:var(--green)">${EMOJI[m.categoria]||'🏷'} ${m.categoria}</span></td><td>${contaNome(m.conta)}</td><td class="val-positivo">+ ${fmt(m.valor)}</td><td style="font-size:11px;color:var(--text-3)">${m.usuario||'—'}</td><td><button class="action-btn" onclick="abrirModalMovimentacao('entrada','${m.id}')" title="Editar">✏️</button><button class="action-btn" onclick="solicitarExclusao('${m.id}','movimentacao')" title="Excluir">🗑</button></td></tr>`).join('');
+};
+
+renderDespesas = function renderDespesasMelhorado() {
+  const search = (document.getElementById('searchDespesas')?.value || '').toLowerCase();
+  const categ  = document.getElementById('filtroCategDespesas')?.value || '';
+  preencherSelectCategorias('filtroCategDespesas', 'despesa', true, categ);
+  let movs = state.movimentacoes.filter(m => m.tipo === 'despesa');
+  if (state.filtro.inicio) movs = movs.filter(m => m.data >= state.filtro.inicio);
+  if (state.filtro.fim) movs = movs.filter(m => m.data <= state.filtro.fim);
+  if (search) movs = movs.filter(m => m.descricao.toLowerCase().includes(search) || m.categoria.toLowerCase().includes(search));
+  if (categ) movs = movs.filter(m => m.categoria === categ);
+  movs.sort((a,b) => a.data.localeCompare(b.data));
+  const tbody = document.getElementById('tbodyDespesas');
+  const empty = document.getElementById('emptyDespesas');
+  if (!movs.length) { tbody.innerHTML = ''; empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = movs.map(m => `<tr><td>${fmtData(m.data)}</td><td><strong>${m.descricao}</strong>${m.parcela ? `<br><small style="color:var(--text-3)">Parcela ${m.parcela}</small>` : ''}</td><td><span class="tag-categ" style="background:var(--red-bg);color:var(--red)">${EMOJI[m.categoria]||'🏷'} ${m.categoria}</span></td><td>${contaNome(m.conta)}</td><td class="val-negativo">- ${fmt(m.valor)}</td><td><button class="btn-status-recebido ${(m.pago||m.conciliado)?'sim':'nao'}" onclick="toggleDespesaPaga('${m.id}')">${m.conciliado?'✓ Conciliada':(m.pago?'✓ Paga':'Marcar paga')}</button></td><td style="font-size:11px;color:var(--text-3)">${m.usuario||'—'}</td><td><button class="action-btn" onclick="abrirModalMovimentacao('despesa','${m.id}')" title="Editar">✏️</button><button class="action-btn" onclick="solicitarExclusao('${m.id}','movimentacao')" title="Excluir">🗑</button></td></tr>`).join('');
+};
+
+const solicitarExclusaoOriginal = solicitarExclusao;
+solicitarExclusao = function solicitarExclusaoMelhorada(id, tipo) {
+  solicitarExclusaoOriginal(id, tipo);
+  const wrap = document.getElementById('excEscopoWrap');
+  const item = tipo === 'movimentacao' ? state.movimentacoes.find(x=>x.id===id) : tipo === 'provisao' ? state.provisoes.find(x=>x.id===id) : null;
+  if (wrap) wrap.style.display = item && (item.serieId || item.recorrencia) ? 'block' : 'none';
+};
+
+confirmarExclusao = function confirmarExclusaoMelhorada() {
+  const id = document.getElementById('excId').value;
+  const tipo = document.getElementById('excTipo').value;
+  const motivo = document.getElementById('excMotivo').value.trim() || 'Sem motivo informado';
+  const escopo = document.getElementById('excEscopo')?.value || 'atual';
+  const snap = snapState();
+  const now = new Date().toISOString();
+  const quem = currentUser?.nome || 'Sistema';
+  function moverLista(lista, pred, itemTipo) {
+    const removidos = lista.filter(pred);
+    removidos.forEach(x => state.lixeira.push({ ...x, itemTipo, dataExclusao:now, excluidoPor:quem, motivo }));
+    state.lixeiraNova = removidos.length > 0;
+    return removidos;
+  }
+  if (tipo === 'movimentacao') {
+    const m = state.movimentacoes.find(x => x.id === id); if (!m) return;
+    pushUndo('Excluir movimentação', snap);
+    const pred = escopo === 'vinculados' ? (x => (x.serieId || x.id) === (m.serieId || m.id)) : (x => x.id === id);
+    const removidos = moverLista(state.movimentacoes, pred, 'movimentacao');
+    state.movimentacoes = state.movimentacoes.filter(x => !pred(x));
+    registrarAuditoria('Excluir Movimentação', `${removidos.length} item(ns) | Motivo: ${motivo}`);
+  } else if (tipo === 'provisao') {
+    const p = state.provisoes.find(x => x.id === id); if (!p) return;
+    const pred = escopo === 'vinculados' ? (x => x.id === id || (x.descricao === p.descricao && x.recorrencia === p.recorrencia)) : (x => x.id === id);
+    moverLista(state.provisoes, pred, 'provisao');
+    state.provisoes = state.provisoes.filter(x => !pred(x));
+  } else {
+    // fallback simples para os demais tipos preservando a lógica original
+    document.getElementById('excEscopo').value = 'atual';
+    const oldConfirm = window.confirm;
+  }
+  salvarState(); fecharModais(); atualizarBadgeLixeira(); renderDashboard(); reRenderAtivo(); toast('Registro movido para a lixeira ✓');
+};
+
+function normalizarDataImportada(v) {
+  const s = String(v || '').trim();
+  let m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) return s;
+  const d = new Date(s); if (!isNaN(d)) return d.toISOString().slice(0,10);
+  return `${getConciliacaoMes()}-01`;
+}
+
+function processarCSV(conteudo, nomeArquivo) {
+  const linhas = conteudo.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const transacoes = [];
+  linhas.slice(1).forEach(l => {
+    const cols = l.includes(';') ? l.split(';') : l.split(',');
+    const data = normalizarDataImportada(cols[0]);
+    const memo = String(cols[1] || 'Importado CSV').trim();
+    const bruto = String(cols[2] || cols[3] || '0').replace(/R\$/g,'').trim();
+    const valor = parseFloat(bruto.replace(/\./g,'').replace(',','.')) || 0;
+    if (Math.abs(valor) > 0) transacoes.push({ data, valor: Math.abs(valor), tipo: valor >= 0 ? 'entrada' : 'despesa', memo });
+  });
+  validarImportados(transacoes, nomeArquivo);
+}
+
+const importarArquivoConcOriginal = importarArquivoConc;
+importarArquivoConc = function importarArquivoConcMelhorado(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'csv') {
+    const reader = new FileReader();
+    reader.onload = e => processarCSV(e.target.result, file.name);
+    reader.readAsText(file, 'UTF-8');
+    event.target.value = '';
+    return;
+  }
+  importarArquivoConcOriginal(event);
+};
+
+const validarImportadosOriginal = validarImportados;
+validarImportados = function validarImportadosMelhorado(transacoes, nomeArquivo) {
+  transacoes = transacoes.map(t => ({ ...t, data: normalizarDataImportada(t.data) })).sort((a,b)=>a.data.localeCompare(b.data));
+  validarImportadosOriginal(transacoes, nomeArquivo);
+};
+
+const renderConciliacaoOriginal = renderConciliacao;
+renderConciliacao = function renderConciliacaoMelhorada() {
+  renderConciliacaoOriginal();
+};
+
+const criarMovimentacaoDoArquivoOriginal = criarMovimentacaoDoArquivo;
+criarMovimentacaoDoArquivo = function criarMovimentacaoDoArquivoMelhorada(id) {
+  criarMovimentacaoDoArquivoOriginal(id);
+};
+
+const abrirModalProvisaoOriginal = abrirModalProvisao;
+abrirModalProvisao = function abrirModalProvisaoMelhorada(id) {
+  abrirModalProvisaoOriginal(id);
+  const p = id ? state.provisoes.find(x=>x.id===id) : null;
+  if (document.getElementById('provDatasAnuais')) document.getElementById('provDatasAnuais').value = p?.datasAnuais || '';
+  atualizarCamposAnuais();
+};
+
+const salvarProvisaoOriginal = salvarProvisao;
+salvarProvisao = function salvarProvisaoMelhorada() {
+  const datasAnuais = document.getElementById('provDatasAnuais')?.value || '';
+  salvarProvisaoOriginal();
+  const id = document.getElementById('provId')?.value;
+  if (id) {
+    const p = state.provisoes.find(x=>x.id===id); if (p) p.datasAnuais = datasAnuais;
+  } else if (state.provisoes.length) {
+    state.provisoes[state.provisoes.length-1].datasAnuais = datasAnuais;
+  }
+  salvarState();
+};
+
+function salvarContaPrincipal() {
+  normalizarStateFinanceiro();
+  const nome = document.getElementById('cfgContaPrincipal')?.value.trim() || 'Banco Noh';
+  const saldo = parseMoeda(document.getElementById('cfgContaSaldo')?.value || '0');
+  state.contas.forEach(c => c.principal = false);
+  let conta = state.contas[0];
+  if (!conta) {
+    conta = { id: uid(), tipo:'corrente', cor:'#4361ee' };
+    state.contas.push(conta);
+  }
+  conta.nome = nome;
+  conta.saldo = saldo;
+  conta.principal = true;
+  state.saldoInicial = saldo;
+  salvarState();
+  renderConfiguracoes();
+  renderDashboard();
+  toast('Conta principal salva ✓');
+}
+
+const renderConfiguracoesOriginal = renderConfiguracoes;
+renderConfiguracoes = function renderConfiguracoesMelhorada() {
+  renderConfiguracoesOriginal();
+  normalizarStateFinanceiro();
+  const principal = state.contas.find(c => c.principal) || state.contas[0];
+  if (document.getElementById('cfgContaPrincipal')) document.getElementById('cfgContaPrincipal').value = principal?.nome || 'Banco Noh';
+  if (document.getElementById('cfgContaSaldo')) document.getElementById('cfgContaSaldo').value = principal?.saldo ? formatMoeda(principal.saldo) : '';
+};
+
+const aplicarPermissoesOriginal = aplicarPermissoes;
+aplicarPermissoes = function aplicarPermissoesSemBotaoGlobal() {
+  aplicarPermissoesOriginal();
+  const bNov = document.getElementById('btnNovaMovimentacao');
+  if (bNov) bNov.style.display = 'none';
+};
+
+/* Correção do fluxo de exclusão para todos os tipos */
+confirmarExclusao = function confirmarExclusaoCompleta() {
+  const id = document.getElementById('excId').value;
+  const tipo = document.getElementById('excTipo').value;
+  const motivo = document.getElementById('excMotivo').value.trim() || 'Sem motivo informado';
+  const escopo = document.getElementById('excEscopo')?.value || 'atual';
+  const snap = snapState();
+  const now = new Date().toISOString();
+  const quem = currentUser?.nome || 'Sistema';
+  const paraLixeira = (item, itemTipo) => state.lixeira.push({ ...item, itemTipo, dataExclusao:now, excluidoPor:quem, motivo });
+
+  if (tipo === 'movimentacao') {
+    const m = state.movimentacoes.find(x => x.id === id); if (!m) return;
+    pushUndo('Excluir movimentação', snap);
+    const pred = escopo === 'vinculados' ? (x => (x.serieId || x.id) === (m.serieId || m.id)) : (x => x.id === id);
+    const removidos = state.movimentacoes.filter(pred);
+    removidos.forEach(x => paraLixeira(x, 'movimentacao'));
+    state.movimentacoes = state.movimentacoes.filter(x => !pred(x));
+    registrarAuditoria('Excluir Movimentação', `${removidos.length} item(ns) | Motivo: ${motivo}`);
+  } else if (tipo === 'transferencia') {
+    const t = state.transferencias.find(x => x.id === id); if (!t) return;
+    pushUndo('Excluir transferência', snap);
+    paraLixeira(t, 'transferencia');
+    state.transferencias = state.transferencias.filter(x => x.id !== id);
+    registrarAuditoria('Excluir Transferência', `"${t.descricao}" ${fmt(t.valor)} | Motivo: ${motivo}`);
+  } else if (tipo === 'reserva') {
+    const r = (state.reserva.movimentos || []).find(x => x.id === id); if (!r) return;
+    paraLixeira(r, 'reserva');
+    state.reserva.movimentos = state.reserva.movimentos.filter(x => x.id !== id);
+    registrarAuditoria('Excluir Reserva', `"${r.descricao}" | Motivo: ${motivo}`);
+  } else if (tipo === 'provisao') {
+    const p = state.provisoes.find(x => x.id === id); if (!p) return;
+    const pred = escopo === 'vinculados' ? (x => x.id === id || (x.descricao === p.descricao && x.recorrencia === p.recorrencia && x.valor === p.valor)) : (x => x.id === id);
+    const removidos = state.provisoes.filter(pred);
+    removidos.forEach(x => paraLixeira(x, 'provisao'));
+    state.provisoes = state.provisoes.filter(x => !pred(x));
+    registrarAuditoria('Excluir Provisão', `${removidos.length} item(ns) | Motivo: ${motivo}`);
+  }
+
+  state.lixeiraNova = true;
+  salvarState(); fecharModais(); atualizarBadgeLixeira(); renderDashboard(); reRenderAtivo(); toast('Registro movido para a lixeira ✓');
+};
+
+/* Datas anuais múltiplas também valem para provisões */
+const provisaoOcorreNoMesBase = provisaoOcorreNoMes;
+provisaoOcorreNoMes = function provisaoOcorreNoMesComDatasAnuais(p, ym) {
+  if (p && p.recorrencia === 'anual' && p.datasAnuais && p.datasAnuais.trim()) {
+    const partes = p.datasAnuais.split(',').map(x=>x.trim()).filter(Boolean);
+    const mesAtual = ym.slice(5,7);
+    const possuiMes = partes.some(dt => {
+      const m = dt.match(/^(\d{1,2})\/(\d{1,2})$/);
+      return m && String(+m[2]).padStart(2,'0') === mesAtual;
+    });
+    if (!possuiMes) return false;
+  }
+  return provisaoOcorreNoMesBase(p, ym);
+};
