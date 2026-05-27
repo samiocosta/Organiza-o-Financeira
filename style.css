@@ -576,3 +576,9 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .btn-status-recebido.sim { background:var(--green-bg); color:var(--green); }
 .btn-status-recebido.nao { background:var(--orange-bg); color:var(--orange); }
 .month-input { min-width: 160px; }
+/* Ajuste solicitado: remove botão global de nova entrada do topo */
+#btnNovaMovimentacao{display:none!important}
+
+/* Melhoria visual dos campos anuais e conta principal */
+textarea.input-text{resize:vertical;min-height:72px;font-family:inherit}
+.config-card small.hint-text{display:block;margin-top:8px;color:var(--text-3);line-height:1.4}
