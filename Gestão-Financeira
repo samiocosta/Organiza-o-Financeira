@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="sysTitle">FinanSys — Sistema Financeiro</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="login-title" id="loginSysName">FinanSys</div>
+        <div class="login-sub">Sistema Financeiro</div>
+      </div>
+    </div>
+    <h2>Bem-vindo de volta</h2>
+    <p class="login-desc">Acesse sua conta para continuar</p>
+    <div class="login-form">
+      <div class="form-group">
+        <label>Usuário</label>
+        <input type="text" class="input-text" id="loginUser" placeholder="Digite seu usuário" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" class="input-text" id="loginPass" placeholder="Digite sua senha" autocomplete="current-password">
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <button class="btn-primary btn-full" onclick="fazerLogin()">Entrar</button>
+    </div>
+    <div class="login-hint">
+      <small>Admin padrão: <strong>admin</strong> / <strong>admin123</strong></small>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen" class="app-screen" style="display:none">
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name" id="sysNameSidebar">FinanSys</div>
+        <div class="logo-sub">Sistema Financeiro</div>
+      </div>
+    </div>
+    <button class="sidebar-toggle" id="sidebarToggle" title="Recolher menu">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <nav class="nav-menu">
+    <div class="nav-section-label">Principal</div>
+    <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-item" data-page="entradas" onclick="navigate('entradas')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Entradas</span>
+    </a>
+    <a class="nav-item" data-page="despesas" onclick="navigate('despesas')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Despesas</span>
+    </a>
+    <div class="nav-section-label">Gestão</div>
+    <a class="nav-item" data-page="reserva" onclick="navigate('reserva')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Reserva Financeira</span>
+    </a>
+    <a class="nav-item" data-page="conciliacao" onclick="navigate('conciliacao')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Conciliação</span>
+    </a>
+    <a class="nav-item" data-page="provisao" onclick="navigate('provisao')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Provisão Mensal</span>
+    </a>
+    <div class="nav-section-label">Sistema</div>
+    <a class="nav-item" data-page="lixeira" onclick="navigate('lixeira')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Lixeira</span>
+      <span class="lixeira-badge" id="lixeiraBadge" style="display:none">0</span>
+    </a>
+    <a class="nav-item" data-page="auditoria" onclick="navigate('auditoria')" id="navAuditoria">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Auditoria</span>
+    </a>
+    <a class="nav-item" data-page="configuracoes" onclick="navigate('configuracoes')">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+      <span>Configurações</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-month-summary">
+      <div class="month-label">Resumo — <span id="mesAtualLabel">Mai/2026</span></div>
+      <div class="month-row"><span>Entradas</span><span class="val-green" id="sfEntradas">R$ 0,00</span></div>
+      <div class="month-row"><span>Despesas</span><span class="val-red" id="sfDespesas">R$ 0,00</span></div>
+      <div class="month-row"><span>Resultado</span><span class="val-blue" id="sfResultado">R$ 0,00</span></div>
+    </div>
+    <div class="user-pill">
+      <div class="user-avatar" id="userAvatarSidebar">AD</div>
+      <div>
+        <div class="user-name" id="userNameSidebar">Usuário</div>
+        <div class="user-role" id="userRoleSidebar">Administrador</div>
+      </div>
+      <button class="btn-logout" onclick="fazerLogout()" title="Sair">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<div class="main-wrapper" id="mainWrapper">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" id="menuBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div>
+        <h1 class="page-title" id="pageTitle">Dashboard</h1>
+        <p class="page-subtitle" id="pageSubtitle">Visão geral da sua situação financeira</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="date-filter">
+        <input type="date" id="filtroDataInicio" class="date-input">
+        <span>—</span>
+        <input type="date" id="filtroDataFim" class="date-input">
+        <button class="btn-filter" onclick="aplicarFiltro()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Filtrar
+        </button>
+        <button class="btn-filter-clear" onclick="limparFiltro()" title="Limpar">×</button>
+      </div>
+      <button class="btn-undo" onclick="desfazerUltimaAcao()" title="Desfazer última ação" id="btnUndo" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 7v6h6M3.13 13A9 9 0 1 0 6 5.7L3 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Desfazer
+      </button>
+      <button class="btn-primary" id="btnNovaMovimentacao" onclick="abrirModalMovimentacao('entrada')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        Nova Entrada
+      </button>
+    </div>
+  </header>
+
+  <main class="content" id="content">
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page active">
+      <div class="saldo-banner">
+        <div class="saldo-banner-left">
+          <span>Saldo Inicial:</span>
+          <div class="saldo-input-wrap">
+            <span class="saldo-prefix">R$</span>
+            <input type="text" id="saldoInicial" placeholder="0,00" oninput="onSaldoInicialInput(this)" onblur="onSaldoInicialBlur(this)"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="month-dashboard-panel">
+        <div>
+          <div class="month-panel-label">Mês analisado no Dashboard</div>
+          <div class="month-panel-title" id="dashboardMesTitulo">Mês atual</div>
+        </div>
+        <div class="month-panel-actions">
+          <button class="btn-secondary" onclick="alterarMesDashboard(-1)">← Mês anterior</button>
+          <input type="month" class="date-input month-input" id="dashboardMesInput" onchange="definirMesDashboard(this.value)">
+          <button class="btn-secondary" onclick="alterarMesDashboard(1)">Próximo mês →</button>
+          <button class="btn-filter" onclick="irParaMesAtual()">Mês atual</button>
+        </div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div><div class="kpi-label">Entradas</div><div class="kpi-value green" id="kpiEntradas">R$ 0,00</div></div>
+            <div class="kpi-icon kpi-icon-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="kpi-chart-area"><canvas id="chartMiniEntradas" height="50"></canvas></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div><div class="kpi-label">Despesas</div><div class="kpi-value red" id="kpiDespesas">R$ 0,00</div></div>
+            <div class="kpi-icon kpi-icon-red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="kpi-chart-area"><canvas id="chartMiniDespesas" height="50"></canvas></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div><div class="kpi-label">Resultado</div><div class="kpi-value blue" id="kpiResultado">R$ 0,00</div></div>
+            <div class="kpi-icon kpi-icon-blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="kpi-chart-area"><canvas id="chartMiniResultado" height="50"></canvas></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div><div class="kpi-label">Valores a Receber</div><div class="kpi-value orange" id="kpiValoresReceber">R$ 0,00</div><div class="kpi-meta">Entradas provisionadas não recebidas</div></div>
+            <div class="kpi-icon kpi-icon-orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="kpi-meta">Não compõe saldo até marcar como recebido</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <div><div class="kpi-label">Reserva Financeira</div><div class="kpi-value purple" id="kpiReservas">R$ 0,00</div><div class="kpi-meta">Meta: <span id="metaReservas">R$ 0,00</span></div></div>
+            <div class="kpi-icon kpi-icon-purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 12V22H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar"><div class="progress-fill" id="progressReservas" style="width:0%"></div></div>
+            <span class="progress-pct" id="progressPct">0%</span>
+          </div>
+        </div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-card-header"><span>Despesas por Categoria</span></div>
+          <div class="chart-body donut-wrap">
+            <canvas id="chartDespesas"></canvas>
+            <div class="donut-center"><div class="donut-total-label">Total</div><div class="donut-total-value" id="donutDespesasTotal">R$ 0,00</div></div>
+          </div>
+          <div class="legend-list" id="legendDespesas"></div>
+          <button class="btn-link" onclick="navigate('despesas')">Ver todas as despesas →</button>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-header"><span>Entradas por Categoria</span></div>
+          <div class="chart-body donut-wrap">
+            <canvas id="chartEntradas"></canvas>
+            <div class="donut-center"><div class="donut-total-label">Total</div><div class="donut-total-value" id="donutEntradasTotal">R$ 0,00</div></div>
+          </div>
+          <div class="legend-list" id="legendEntradas"></div>
+          <button class="btn-link" onclick="navigate('entradas')">Ver todas as entradas →</button>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-header"><span>Evolução Mensal</span></div>
+          <canvas id="chartEvolucaoDash" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="planning-card">
+        <div class="chart-card-header"><span>Calendário financeiro mensal e anual</span><small>Próximos 12 meses a partir do mês selecionado</small></div>
+        <div class="table-scroll">
+          <table class="data-table compact-table">
+            <thead>
+              <tr>
+                <th>Mês/Ano</th>
+                <th>Entradas recebidas</th>
+                <th>Valores a receber</th>
+                <th>Despesas</th>
+                <th>Saldo livre previsto</th>
+                <th>Saldo acumulado previsto</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyPlanejamentoMensal"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="last-row">
+        <div class="last-card">
+          <div class="last-header"><span>🔴 Últimas Despesas</span><button class="btn-link" onclick="navigate('despesas')">Ver todas</button></div>
+          <div id="listUltimasDespesas" class="mov-list"></div>
+        </div>
+        <div class="last-card">
+          <div class="last-header"><span>🟢 Últimas Entradas</span><button class="btn-link" onclick="navigate('entradas')">Ver todas</button></div>
+          <div id="listUltimasEntradas" class="mov-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ENTRADAS -->
+    <section id="page-entradas" class="page">
+      <div class="page-toolbar">
+        <div class="toolbar-filters">
+          <input type="text" class="input-search" id="searchEntradas" placeholder="Buscar entradas..." oninput="renderEntradas()">
+          <select class="input-select" id="filtroCategEntradas" onchange="renderEntradas()"><option value="">Todas as categorias</option></select>
+        </div>
+        <button class="btn-primary" onclick="abrirModalMovimentacao('entrada')">+ Nova Entrada</button>
+      </div>
+      <div class="table-card">
+        <table class="data-table"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor</th><th>Usuário</th><th>Ações</th></tr></thead><tbody id="tbodyEntradas"></tbody></table>
+        <div class="empty-state" id="emptyEntradas"><svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><p>Nenhuma entrada registrada ainda.</p><button class="btn-primary" onclick="abrirModalMovimentacao('entrada')">Registrar primeira entrada</button></div>
+      </div>
+    </section>
+
+    <!-- DESPESAS -->
+    <section id="page-despesas" class="page">
+      <div class="page-toolbar">
+        <div class="toolbar-filters">
+          <input type="text" class="input-search" id="searchDespesas" placeholder="Buscar despesas..." oninput="renderDespesas()">
+          <select class="input-select" id="filtroCategDespesas" onchange="renderDespesas()"><option value="">Todas as categorias</option></select>
+        </div>
+        <button class="btn-primary" style="background:var(--red)" onclick="abrirModalMovimentacao('despesa')">+ Nova Despesa</button>
+      </div>
+      <div class="table-card">
+        <table class="data-table"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Valor</th><th>Conciliado</th><th>Usuário</th><th>Ações</th></tr></thead><tbody id="tbodyDespesas"></tbody></table>
+        <div class="empty-state" id="emptyDespesas"><svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><p>Nenhuma despesa registrada ainda.</p><button class="btn-primary" style="background:var(--red)" onclick="abrirModalMovimentacao('despesa')">Registrar primeira despesa</button></div>
+      </div>
+    </section>
+
+    <!-- TRANSFERÊNCIAS -->
+    <section id="page-transferencias" class="page">
+      <div class="page-toolbar">
+        <span class="info-text">Registre transferências entre suas contas.</span>
+        <button class="btn-primary" onclick="abrirModalTransferencia()">+ Nova Transferência</button>
+      </div>
+      <div class="table-card">
+        <table class="data-table"><thead><tr><th>Data</th><th>Descrição</th><th>De</th><th>Para</th><th>Valor</th><th>Usuário</th><th>Ações</th></tr></thead><tbody id="tbodyTransferencias"></tbody></table>
+        <div class="empty-state" id="emptyTransferencias"><svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M7 16l-4-4m0 0l4-4m-4 4h18M17 8l4 4m0 0l-4 4m4-4H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><p>Nenhuma transferência registrada.</p></div>
+      </div>
+    </section>
+
+    <!-- RESERVA FINANCEIRA -->
+    <section id="page-reserva" class="page">
+      <div class="reserva-header-cards">
+        <div class="reserva-kpi-card"><div class="reserva-kpi-label">Saldo da Reserva</div><div class="reserva-kpi-val purple" id="reservaSaldo">R$ 0,00</div></div>
+        <div class="reserva-kpi-card"><div class="reserva-kpi-label">Meta da Reserva</div><div class="reserva-kpi-val blue" id="reservaMeta">R$ 0,00</div></div>
+        <div class="reserva-kpi-card"><div class="reserva-kpi-label">Progresso</div><div class="reserva-kpi-val green" id="reservaProgPct">0%</div><div class="progress-bar-wrap" style="margin-top:8px"><div class="progress-bar"><div class="progress-fill" id="reservaProgressBar" style="width:0%"></div></div></div></div>
+        <div class="reserva-kpi-card"><div class="reserva-kpi-label">Falta para Meta</div><div class="reserva-kpi-val orange" id="reservaFalta">R$ 0,00</div></div>
+      </div>
+      <div class="page-toolbar" style="margin-top:16px">
+        <div class="toolbar-filters">
+          <input type="text" class="input-text" id="reservaMetaInput" placeholder="Definir meta (R$)" style="width:200px">
+          <button class="btn-primary" onclick="salvarMetaReserva()">Salvar Meta</button>
+        </div>
+        <button class="btn-primary" onclick="abrirModalReserva()">+ Adicionar à Reserva</button>
+      </div>
+      <div class="table-card">
+        <table class="data-table"><thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Valor</th><th>Usuário</th><th>Ações</th></tr></thead><tbody id="tbodyReserva"></tbody></table>
+        <div class="empty-state" id="emptyReserva"><p>Nenhum movimento na reserva.</p></div>
+      </div>
+    </section>
+
+    <!-- CONCILIAÇÃO -->
+    <section id="page-conciliacao" class="page">
+      <div class="conc-summary-bar">
+        <div class="conc-sum-item"><span>Total</span><strong id="concTotalLanc">0</strong></div>
+        <div class="conc-sum-item"><span>Conciliados</span><strong class="green" id="concTotalConc">0</strong></div>
+        <div class="conc-sum-item"><span>Pendentes</span><strong class="red" id="concTotalPend">0</strong></div>
+        <div class="conc-sum-item"><span>% Conciliado</span><strong class="blue" id="concTotalPct">0%</strong></div>
+      </div>
+      <div class="page-toolbar">
+        <div class="toolbar-filters">
+          <select class="input-select" id="filtroConcConta" onchange="renderConciliacao()"></select>
+          <input type="month" class="date-input month-input" id="conciliacaoMesInput" onchange="definirMesConciliacao(this.value)">
+          <select class="input-select" id="filtroConcStatus" onchange="renderConciliacao()"><option value="">Todos</option><option value="pendente">Pendentes</option><option value="conciliado">Conciliados</option></select>
+        </div>
+        <div style="display:flex;gap:8px">
+          <label class="btn-secondary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+            📂 Importar OFX/XLSX/XLS
+            <input type="file" id="fileImportConc" accept=".ofx,.xlsx,.xls" style="display:none" onchange="importarArquivoConc(event)">
+          </label>
+          <button class="btn-secondary" onclick="limparArquivoConc()">Remover arquivo importado</button>
+          <button class="btn-primary" onclick="conciliarTodos()">Conciliar Todos Pendentes</button>
+        </div>
+      </div>
+      <div class="table-card" id="boxArquivoConc" style="margin-bottom:16px;display:none">
+        <div class="last-header" style="padding:16px 20px"><strong>Itens encontrados no arquivo importado</strong></div>
+        <table class="data-table"><thead><tr><th>Data</th><th>Descrição no arquivo</th><th>Tipo</th><th>Valor</th><th>Situação</th><th>Ações</th></tr></thead><tbody id="tbodyArquivoConc"></tbody></table>
+      </div>
+      <div class="table-card">
+        <table class="data-table"><thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Conta</th><th>Valor</th><th>Destaque</th><th>Status</th><th>Usuário</th><th>Ações</th></tr></thead><tbody id="tbodyConciliacao"></tbody></table>
+        <div class="empty-state" id="emptyConciliacao"><p>Nenhum lançamento para conciliar.</p></div>
+      </div>
+    </section>
+
+    <!-- PROVISÃO MENSAL -->
+    <section id="page-provisao" class="page">
+      <div class="page-toolbar">
+        <span class="info-text">Gerencie suas receitas e despesas fixas mensais.</span>
+        <button class="btn-primary" onclick="abrirModalProvisao()">+ Nova Provisão</button>
+      </div>
+      <div class="month-dashboard-panel">
+        <div>
+          <div class="month-panel-label">Mês analisado na Provisão Mensal</div>
+          <div class="month-panel-title" id="provisaoMesTitulo">Mês atual</div>
+        </div>
+        <div class="month-panel-actions">
+          <button class="btn-secondary" onclick="alterarMesProvisao(-1)">← Mês anterior</button>
+          <input type="month" class="date-input month-input" id="provisaoMesInput" onchange="definirMesProvisao(this.value)">
+          <button class="btn-secondary" onclick="alterarMesProvisao(1)">Próximo mês →</button>
+          <button class="btn-filter" onclick="irParaMesAtualProvisao()">Mês atual</button>
+        </div>
+      </div>
+      <div class="kpi-grid" style="margin-bottom:16px">
+        <div class="kpi-card"><div class="kpi-label">Total Receitas Fixas</div><div class="kpi-value green" id="provTotalEntradas">R$ 0,00</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Despesas Fixas</div><div class="kpi-value red" id="provTotalDespesas">R$ 0,00</div></div>
+        <div class="kpi-card"><div class="kpi-label">Saldo Provisionado</div><div class="kpi-value blue" id="provSaldo">R$ 0,00</div></div>
+        <div class="kpi-card"><div class="kpi-label">Lançamentos do Mês</div><div class="kpi-value purple" id="provTotal">0</div></div>
+      </div>
+      <div class="table-card">
+        <table class="data-table"><thead><tr><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Conta</th><th>Dia Vencto.</th><th>Recorrência</th><th>Parcela/Repetição</th><th>Valor</th><th>Recebido no mês</th><th>Ações</th></tr></thead><tbody id="tbodyProvisao"></tbody></table>
+        <div class="empty-state" id="emptyProvisao"><p>Nenhuma provisão cadastrada.</p></div>
+      </div>
+    </section>
+
+    <!-- LIXEIRA -->
+    <section id="page-lixeira" class="page">
+      <div class="page-toolbar">
+        <span class="info-text">Registros excluídos são mantidos por 90 dias.</span>
+        <button class="btn-danger" onclick="esvaziarLixeira()">🗑 Esvaziar Lixeira</button>
+      </div>
+      <div class="table-card">
+        <table class="data-table"><thead><tr><th>Data Exclusão</th><th>Tipo</th><th>Descrição</th><th>Valor</th><th>Excluído por</th><th>Motivo</th><th>Expira em</th><th>Ações</th></tr></thead><tbody id="tbodyLixeira"></tbody></table>
+        <div class="empty-state" id="emptyLixeira"><p>Lixeira vazia.</p></div>
+      </div>
+    </section>
+
+    <!-- AUDITORIA -->
+    <section id="page-auditoria" class="page">
+      <div class="page-toolbar">
+        <div class="toolbar-filters">
+          <input type="text" class="input-search" id="searchAuditoria" placeholder="Buscar ação..." oninput="renderAuditoria()">
+          <select class="input-select" id="filtroAudUser" onchange="renderAuditoria()"><option value="">Todos os usuários</option></select>
+        </div>
+        <button class="btn-secondary" onclick="limparAuditoria()">Limpar Log</button>
+      </div>
+      <div class="table-card">
+        <table class="data-table"><thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Detalhe</th></tr></thead><tbody id="tbodyAuditoria"></tbody></table>
+        <div class="empty-state" id="emptyAuditoria"><p>Nenhuma ação registrada.</p></div>
+      </div>
+    </section>
+
+    <!-- CONFIGURAÇÕES -->
+    <section id="page-configuracoes" class="page">
+      <div class="config-grid">
+        <div class="config-card">
+          <h3>Informações do Sistema</h3>
+          <label>Nome do Sistema</label>
+          <input type="text" class="input-text" id="cfgNomeSistema" placeholder="FinanSys">
+          <label>Meta de Reservas (R$)</label>
+          <input type="text" class="input-text" id="cfgMetaReservas" placeholder="0,00">
+          <button class="btn-primary" onclick="salvarConfiguracoes()">Salvar Configurações</button>
+        </div>
+        <div class="config-card">
+          <h3>Categorias</h3>
+          <div class="categ-list" id="categList"></div>
+          <div class="add-categ-row">
+            <input type="text" class="input-text" id="novaCateg" placeholder="Nova categoria...">
+            <select class="input-select" id="novaCategTipo"><option value="ambos">Ambos</option><option value="entrada">Entrada</option><option value="despesa">Despesa</option></select>
+            <button class="btn-primary" onclick="adicionarCategoria()">Adicionar</button>
+          </div>
+          <small class="hint-text">Use editar para renomear uma categoria ou excluir para removê-la das próximas listas.</small>
+        </div>
+        <div class="config-card" id="cfgUsuariosCard">
+          <h3>Gestão de Usuários</h3>
+          <div class="user-list" id="userList"></div>
+          <button class="btn-primary" style="margin-top:8px" onclick="abrirModalUsuario()">+ Novo Usuário</button>
+        </div>
+        <div class="config-card danger-zone">
+          <h3>Zona de Perigo</h3>
+          <p>Apagar todos os dados do sistema. Esta ação não pode ser desfeita.</p>
+          <button class="btn-danger" onclick="limparTodosDados()">🗑 Apagar todos os dados</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+</div><!-- /appScreen -->
+
+<!-- MODAIS -->
+<div class="modal-overlay" id="modalMovimentacao">
+  <div class="modal">
+    <div class="modal-header"><h2 id="modalTitulo">Nova Entrada</h2><button class="modal-close" onclick="fecharModais()">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Tipo</label><select class="input-select" id="movTipo" onchange="onTipoChange()"><option value="entrada">Entrada</option><option value="despesa">Despesa</option></select></div>
+        <div class="form-group"><label>Data</label><input type="date" class="input-text" id="movData"></div>
+      </div>
+      <div class="form-group"><label>Descrição</label><input type="text" class="input-text" id="movDescricao" placeholder="Ex: Salário, Aluguel..."></div>
+      <div class="form-row">
+        <div class="form-group"><label>Categoria</label><select class="input-select" id="movCategoria"></select></div>
+        <div class="form-group"><label>Conta</label><select class="input-select" id="movConta"></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Valor (R$)</label><input type="text" class="input-text" id="movValor" placeholder="0,00"></div>
+        <div class="form-group"><label>Observações</label><input type="text" class="input-text" id="movObs" placeholder="Opcional"></div>
+      </div>
+      <div class="form-row" id="movRecorrenciaWrap">
+        <div class="form-group"><label>Recorrência do lançamento</label><select class="input-select" id="movRecorrencia"><option value="">Somente neste mês</option><option value="fixa">Fixa com repetições</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select></div>
+        <div class="form-group"><label>Quantidade de repetições</label><input type="number" class="input-text" id="movRepeticoes" min="1" placeholder="Ex: 12"></div>
+      </div>
+      <label class="check-line" id="movRecebidoWrap"><input type="checkbox" id="movRecebido"> Valor recebido ou despesa paga</label>
+      <input type="hidden" id="movId">
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="fecharModais()">Cancelar</button><button class="btn-primary" id="btnSalvarMov" onclick="salvarMovimentacao()">Salvar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalTransferencia">
+  <div class="modal">
+    <div class="modal-header"><h2>Nova Transferência</h2><button class="modal-close" onclick="fecharModais()">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Data</label><input type="date" class="input-text" id="tfData"></div>
+        <div class="form-group"><label>Valor (R$)</label><input type="text" class="input-text" id="tfValor" placeholder="0,00"></div>
+      </div>
+      <div class="form-group"><label>Descrição</label><input type="text" class="input-text" id="tfDescricao" placeholder="Ex: Reserva de emergência"></div>
+      <div class="form-row">
+        <div class="form-group"><label>De (Conta Origem)</label><select class="input-select" id="tfDe"></select></div>
+        <div class="form-group"><label>Para (Conta Destino)</label><select class="input-select" id="tfPara"></select></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="fecharModais()">Cancelar</button><button class="btn-primary" onclick="salvarTransferencia()">Transferir</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalConta">
+  <div class="modal">
+    <div class="modal-header"><h2 id="modalContaTitulo">Nova Conta</h2><button class="modal-close" onclick="fecharModais()">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Nome da Conta</label><input type="text" class="input-text" id="ctNome" placeholder="Ex: Nubank, Bradesco, Inter..."></div>
+      <div class="form-row">
+        <div class="form-group"><label>Tipo</label><select class="input-select" id="ctTipo"><option value="corrente">Conta Corrente</option><option value="poupanca">Poupança</option><option value="carteira">Carteira</option><option value="investimento">Investimento</option><option value="outro">Outro</option></select></div>
+        <div class="form-group"><label>Saldo Inicial (R$)</label><input type="text" class="input-text" id="ctSaldo" placeholder="0,00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Cor</label><input type="color" id="ctCor" value="#4361ee" style="height:36px;width:60px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer"></div>
+        <div class="form-group"><label>Conta Principal</label><select class="input-select" id="ctPrincipal"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
+      </div>
+      <input type="hidden" id="ctId">
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="fecharModais()">Cancelar</button><button class="btn-primary" onclick="salvarConta()">Salvar Conta</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalReserva">
+  <div class="modal">
+    <div class="modal-header"><h2>Movimentar Reserva</h2><button class="modal-close" onclick="fecharModais()">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Tipo</label><select class="input-select" id="resTipo" onchange="onReservaTipoChange()"><option value="entrada">Adicionar à reserva</option><option value="saida">Retirar da reserva</option><option value="para_conta">Transferir reserva para conta</option><option value="da_conta">Retornar conta para reserva</option></select></div>
+        <div class="form-group"><label>Data</label><input type="date" class="input-text" id="resData"></div>
+      </div>
+      <div class="form-group"><label>Descrição</label><input type="text" class="input-text" id="resDescricao" placeholder="Ex: Aporte mensal"></div>
+      <div class="form-group"><label>Valor (R$)</label><input type="text" class="input-text" id="resValor" placeholder="0,00"></div>
+      <div class="form-group" id="resContaWrap" style="display:none"><label>Conta</label><select class="input-select" id="resConta"></select></div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="fecharModais()">Cancelar</button><button class="btn-primary" onclick="salvarReserva()">Salvar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalProvisao">
+  <div class="modal">
+    <div class="modal-header"><h2>Nova Provisão Mensal</h2><button class="modal-close" onclick="fecharModais()">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Tipo</label><select class="input-select" id="provTipo" onchange="preencherSelectCategorias('provCategoria', this.value)"><option value="entrada">Receita Fixa</option><option value="despesa">Despesa Fixa</option></select></div>
+        <div class="form-group"><label>Dia Vencimento</label><input type="number" class="input-text" id="provDia" min="1" max="31" placeholder="Ex: 5"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Início da recorrência</label><input type="month" class="input-text" id="provInicio"></div>
+        <div class="form-group"><label>Recorrência</label><select class="input-select" id="provRecorrencia"><option value="fixa">Fixa com repetições</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select></div>
+      </div>
+      <div class="form-group"><label>Quantidade de parcelas/repetições</label><input type="number" class="input-text" id="provRepeticoes" min="1" placeholder="Ex: 12. Deixe em branco para recorrência contínua"></div>
+      <div class="form-group"><label>Descrição</label><input type="text" class="input-text" id="provDescricao" placeholder="Ex: Aluguel, Salário..."></div>
+      <div class="form-row">
+        <div class="form-group"><label>Categoria</label><select class="input-select" id="provCategoria"></select></div>
+        <div class="form-group"><label>Valor (R$)</label><input type="text" class="input-text" id="provValor" placeholder="0,00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Conta de recebimento</label><select class="input-select" id="provConta"></select></div>
+        <div class="form-group"><label>Recebimento do mês analisado</label><label class="check-line recebimento-check"><input type="checkbox" id="provRecebido"> Marcar como recebido no mês selecionado</label><small class="hint-text">Ao marcar, o valor sai de Valores a Receber e entra automaticamente na conta escolhida sem duplicar lançamento.</small></div>
+      </div>
+      <input type="hidden" id="provId">
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="fecharModais()">Cancelar</button><button class="btn-primary" onclick="salvarProvisao()">Salvar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalExclusao">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header"><h2>Confirmar Exclusão</h2><button class="modal-close" onclick="fecharModais()">×</button></div>
+    <div class="modal-body">
+      <p style="color:var(--text-2);margin-bottom:12px">O registro será movido para a lixeira e poderá ser restaurado em até 90 dias.</p>
+      <div class="form-group"><label>Motivo da Exclusão</label><input type="text" class="input-text" id="excMotivo" placeholder="Informe o motivo (opcional)"></div>
+      <input type="hidden" id="excId"><input type="hidden" id="excTipo">
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="fecharModais()">Cancelar</button><button class="btn-danger" onclick="confirmarExclusao()">Excluir</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalUsuario">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><h2 id="modalUserTitulo">Novo Usuário</h2><button class="modal-close" onclick="fecharModais()">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Nome Completo</label><input type="text" class="input-text" id="usrNome" placeholder="Nome do usuário"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Login</label><input type="text" class="input-text" id="usrLogin" placeholder="usuario123"></div>
+        <div class="form-group"><label>Senha</label><input type="password" class="input-text" id="usrSenha" placeholder="Senha"></div>
+      </div>
+      <div class="form-group"><label>Nível de Acesso</label>
+        <select class="input-select" id="usrNivel">
+          <option value="1">Nível 1 — Colaborador (somente visualização)</option>
+          <option value="2">Nível 2 — Operador (entradas/despesas)</option>
+          <option value="3">Nível 3 — Supervisor (+ transferências)</option>
+          <option value="4">Nível 4 — Gerente (+ relatórios/contas)</option>
+          <option value="5">Nível 5 — Administrador (acesso total)</option>
+        </select>
+      </div>
+      <input type="hidden" id="usrId">
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" onclick="fecharModais()">Cancelar</button><button class="btn-primary" onclick="salvarUsuario()">Salvar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="script.js"></script>
+</body>
+</html>
