@@ -155,10 +155,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 7v6h6M3.13 13A9 9 0 1 0 6 5.7L3 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Desfazer
       </button>
-      <button class="btn-primary" id="btnNovaMovimentacao" onclick="abrirModalMovimentacao('entrada')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-        Nova Entrada
-      </button>
+      
     </div>
   </header>
 
@@ -362,8 +359,8 @@
         </div>
         <div style="display:flex;gap:8px">
           <label class="btn-secondary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            📂 Importar OFX/XLSX/XLS
-            <input type="file" id="fileImportConc" accept=".ofx,.xlsx,.xls" style="display:none" onchange="importarArquivoConc(event)">
+            📂 Importar OFX/XLSX/XLS/CSV
+            <input type="file" id="fileImportConc" accept=".ofx,.xlsx,.xls,.csv" style="display:none" onchange="importarArquivoConc(event)">
           </label>
           <button class="btn-secondary" onclick="limparArquivoConc()">Remover arquivo importado</button>
           <button class="btn-primary" onclick="conciliarTodos()">Conciliar Todos Pendentes</button>
@@ -447,6 +444,16 @@
           <input type="text" class="input-text" id="cfgMetaReservas" placeholder="0,00">
           <button class="btn-primary" onclick="salvarConfiguracoes()">Salvar Configurações</button>
         </div>
+        
+        <div class="config-card">
+          <h3>Conta Principal</h3>
+          <label>Nome da Conta Principal</label>
+          <input type="text" class="input-text" id="cfgContaPrincipal" placeholder="Ex: Banco Noh">
+          <label>Saldo inicial da conta</label>
+          <input type="text" class="input-text" id="cfgContaSaldo" placeholder="0,00">
+          <button class="btn-primary" onclick="salvarContaPrincipal()">Salvar Conta Principal</button>
+          <small class="hint-text">Esta conta será usada como padrão nos lançamentos e na conciliação bancária.</small>
+        </div>
         <div class="config-card">
           <h3>Categorias</h3>
           <div class="categ-list" id="categList"></div>
@@ -493,10 +500,11 @@
         <div class="form-group"><label>Observações</label><input type="text" class="input-text" id="movObs" placeholder="Opcional"></div>
       </div>
       <div class="form-row" id="movRecorrenciaWrap">
-        <div class="form-group"><label>Recorrência do lançamento</label><select class="input-select" id="movRecorrencia"><option value="">Somente neste mês</option><option value="fixa">Fixa com repetições</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select></div>
+        <div class="form-group"><label>Recorrência do lançamento</label><select class="input-select" id="movRecorrencia" onchange="atualizarCamposAnuais()"><option value="">Somente neste mês</option><option value="mensal">Mensal</option><option value="anual">Anual</option><option value="fixa">Fixo</option></select></div>
         <div class="form-group"><label>Quantidade de repetições</label><input type="number" class="input-text" id="movRepeticoes" min="1" placeholder="Ex: 12"></div>
       </div>
-      <label class="check-line" id="movRecebidoWrap"><input type="checkbox" id="movRecebido"> Valor recebido ou despesa paga</label>
+      <div class="form-group" id="movDatasAnuaisWrap" style="display:none"><label>Datas anuais específicas</label><textarea class="input-text" id="movDatasAnuais" rows="3" placeholder="Ex: 15/03, 15/06, 15/12"></textarea></div>
+      <label class="check-line" id="movRecebidoWrap"><input type="checkbox" id="movRecebido"> Entrada recebida ou despesa paga</label>
       <input type="hidden" id="movId">
     </div>
     <div class="modal-footer"><button class="btn-secondary" onclick="fecharModais()">Cancelar</button><button class="btn-primary" id="btnSalvarMov" onclick="salvarMovimentacao()">Salvar</button></div>
@@ -561,14 +569,15 @@
     <div class="modal-header"><h2>Nova Provisão Mensal</h2><button class="modal-close" onclick="fecharModais()">×</button></div>
     <div class="modal-body">
       <div class="form-row">
-        <div class="form-group"><label>Tipo</label><select class="input-select" id="provTipo" onchange="preencherSelectCategorias('provCategoria', this.value)"><option value="entrada">Receita Fixa</option><option value="despesa">Despesa Fixa</option></select></div>
+        <div class="form-group"><label>Tipo</label><select class="input-select" id="provTipo" onchange="preencherSelectCategorias('provCategoria', this.value)"><option value="entrada">Receita</option><option value="despesa">Despesa</option></select></div>
         <div class="form-group"><label>Dia Vencimento</label><input type="number" class="input-text" id="provDia" min="1" max="31" placeholder="Ex: 5"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Início da recorrência</label><input type="month" class="input-text" id="provInicio"></div>
-        <div class="form-group"><label>Recorrência</label><select class="input-select" id="provRecorrencia"><option value="fixa">Fixa com repetições</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select></div>
+        <div class="form-group"><label>Recorrência</label><select class="input-select" id="provRecorrencia" onchange="atualizarCamposAnuais()"><option value="mensal">Mensal</option><option value="anual">Anual</option><option value="fixa">Fixo</option></select></div>
       </div>
       <div class="form-group"><label>Quantidade de parcelas/repetições</label><input type="number" class="input-text" id="provRepeticoes" min="1" placeholder="Ex: 12. Deixe em branco para recorrência contínua"></div>
+      <div class="form-group" id="provDatasAnuaisWrap" style="display:none"><label>Datas anuais específicas</label><textarea class="input-text" id="provDatasAnuais" rows="3" placeholder="Ex: 15/03, 15/06, 15/12 ou deixe em branco para repetir na data de início"></textarea><small class="hint-text">Use uma data por vírgula para múltiplas repetições anuais.</small></div>
       <div class="form-group"><label>Descrição</label><input type="text" class="input-text" id="provDescricao" placeholder="Ex: Aluguel, Salário..."></div>
       <div class="form-row">
         <div class="form-group"><label>Categoria</label><select class="input-select" id="provCategoria"></select></div>
@@ -590,6 +599,7 @@
     <div class="modal-body">
       <p style="color:var(--text-2);margin-bottom:12px">O registro será movido para a lixeira e poderá ser restaurado em até 90 dias.</p>
       <div class="form-group"><label>Motivo da Exclusão</label><input type="text" class="input-text" id="excMotivo" placeholder="Informe o motivo (opcional)"></div>
+      <div class="form-group" id="excEscopoWrap"><label>O que deseja excluir?</label><select class="input-select" id="excEscopo"><option value="atual">Excluir apenas este lançamento</option><option value="vinculados">Excluir todos os lançamentos vinculados</option></select></div>
       <input type="hidden" id="excId"><input type="hidden" id="excTipo">
     </div>
     <div class="modal-footer"><button class="btn-secondary" onclick="fecharModais()">Cancelar</button><button class="btn-danger" onclick="confirmarExclusao()">Excluir</button></div>
@@ -621,6 +631,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 </body>
 </html>
